@@ -440,13 +440,9 @@ export class Wallet {
     /**
      * Derives a new child Wallet
      */
-    public deriveChild(sequence: number, derivation = `m/44'/60'/0'/0`): string {
-
+    public deriveChild(sequence: number, derivation = `m/44'/60'/0'/0`): ethers.HDNode {
         const masterKey = HDNode.fromMnemonic(this.mnemonic);
-        const hdnode = masterKey.derivePath(`${derivation}/${sequence}`);
-        //    console.log(hdnode.path, hdnode.fingerprint, hdnode.parentFingerprint);
-        const ethersWallet = new ethers.Wallet(hdnode);
-        return ethersWallet.mnemonic;
+        return masterKey.derivePath(`${derivation}/${sequence}`);
     }
 
     public get path() {
@@ -459,13 +455,18 @@ export class Wallet {
     /**
      * Derives a wallet from a path
      */
-    public deriveFromPath(path: string): string {
-
+    public deriveFromPath(path: string): ethers.HDNode {
         const node = HDNode.fromMnemonic(this.mnemonic).derivePath(path);
-        const ethersWallet = new ethers.Wallet(node);
-        return ethersWallet.mnemonic;
+        return node;
     }
 
+    public getFilecoinDeriveChild():  ethers.HDNode {
+        return this.deriveFromPath(`m/44'/461'/0/0/1`);
+    }
+
+    /**
+     * Gets EdDSA key pair
+     */
     public getEd25519(): eddsa.KeyPair {
         const ed25519 = new eddsa('ed25519');
         // const hdkey = HDKey.fromExtendedKey(HDNode.fromMnemonic(this.mnemonic).extendedKey);
