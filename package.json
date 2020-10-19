@@ -35,6 +35,7 @@
     "@erebos/keccak256": "^0.13.1",
     "@erebos/secp256k1": "^0.10.0",
     "@types/elliptic": "^6.4.12",
+    "@zondax/filecoin-signing-tools": "^0.11.0",
     "anonymous-credentials": "git+https://github.com/cliqz-oss/anonymous-credentials.git",
     "arraybuffer-concat": "0.0.1",
     "arraybuffer-to-string": "^1.0.2",
