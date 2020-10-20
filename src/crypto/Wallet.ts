@@ -1,3 +1,4 @@
+const filecoinSigner = require('@zondax/filecoin-signer');
 import PouchDB from 'pouchdb';
 import { createKeyPair, sign } from '@erebos/secp256k1';
 import { ec, eddsa } from 'elliptic';
@@ -12,10 +13,12 @@ import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
 import { Subject } from 'rxjs';
 import { SwarmFeed } from '../swarm/feed';
+import { type } from 'os';
 import {
     deriveKeyFromMnemonic,
     deriveEth2ValidatorKeys,
 } from "@chainsafe/bls-keygen";
+import { FileKeyInfo } from 'xml-crypto';
 export type AlgorithmTypeString = keyof typeof AlgorithmType;
 export enum AlgorithmType {
     RSA,
@@ -51,8 +54,33 @@ export interface KeystoreDbModel {
     publicKeys?: any;
 }
 
-export interface KeyStoreModel { BLS?: any, ES256K: any; P256: any; RSA: any; ED25519: any; }
+export interface KeyStoreModel {
+    BLS?: any,
+    ES256K: any;
+    P256: any;
+    RSA: any;
+    ED25519: any;
+    Filecoin: any;
+    Vechain?: any;
+    Polkadot?: any;
+}
 
+export class KeyStore implements KeyStoreModel {
+    public ED25519: any;
+    public ES256K: any;
+    public P256: any;
+    public RSA: any;
+    public BLS: any;
+    public Filecoin: any;
+    public Vechain: any;
+    public Polkadot: any;
+    constructor(
+    ) {
+
+    }
+}
+
+type FilecoinSignTypes = 'filecoin' | 'lotus';
 export class Wallet {
     public id: string;
     public onRequestPassphraseSubscriber: Subject = new Subject<string>();
@@ -69,6 +97,37 @@ export class Wallet {
         PouchDB.plugin(require('crypto-pouch'));
     }
 
+
+
+    /**
+     * Signs a filecoin transaction
+     * @param transaction a filecoin transaction
+     * @param signer Sets the filecoin or lotus signer
+     */
+    public async signFilecoinTransaction(transaction: any, signer: FilecoinSignTypes): Promise<[Error, any?]> {
+
+        this.onRequestPassphraseSubscriber.next({ type: 'request_tx', transaction, algorithm: signer.toString() });
+
+        const canUseIt = await this.canUse();
+        const tx = filecoinSigner.transactionSerialize(transaction);
+        if (canUseIt) {
+            let signature;
+            const pvk = await this.getFilecoinDeriveChild();
+            if (signer === 'filecoin') {
+                signature = filecoinSigner.transactionSign(
+                    tx,
+                    pvk
+                );
+            } else {
+                signature = filecoinSigner.transactionSignLotus(
+                    tx,
+                    pvk
+                );                
+            }
+            return [null, signature];
+        }
+        return [new Error('invalid_passphrase')]
+    }
 
     /**
      * Creates a new queryable swarm feed
@@ -153,7 +212,6 @@ export class Wallet {
 
     }
 
-
     /**
      * Sets a public key in storage
      * @param id 
@@ -180,21 +238,13 @@ export class Wallet {
         this.mnemonic = mnemonic
 
 
-        let keystores: KeyStoreModel = {
-            ED25519: '',
-            ES256K: '',
-            P256: '',
-            RSA: '',
-            BLS: '',
-        }
+        let keystores: KeyStoreModel = new KeyStore()
+        let keyExports: KeyStoreModel = new KeyStore();
 
-        let keyExports: KeyStoreModel = {
-            ED25519: '',
-            ES256K: '',
-            P256: '',
-            RSA: '',
-            BLS: '',
-        }
+        // Filecoin
+        let keyFil = this.getFilecoinDeriveChild();
+        keystores.Filecoin = keyFil;
+
         // ED25519
         let kp = this.getEd25519();
         keystores.ED25519 = kp.getSecret('hex');
@@ -460,7 +510,7 @@ export class Wallet {
         return node;
     }
 
-    public getFilecoinDeriveChild():  ethers.HDNode {
+    public getFilecoinDeriveChild(): ethers.HDNode {
         return this.deriveFromPath(`m/44'/461'/0/0/1`);
     }
 
