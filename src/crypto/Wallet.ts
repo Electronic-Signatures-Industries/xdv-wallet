@@ -97,7 +97,17 @@ export class Wallet {
         PouchDB.plugin(require('crypto-pouch'));
     }
 
-
+    /**
+     * Verifies a filecoin signed transaction
+     * @param signature a filecoin signature
+     * @param cborContent a filecoint raw transaction
+     */
+    public async verifyFilecoinSignature(signature: string, cborContent: string): Promise<boolean> {
+        return filecoinSigner.verifySignature(
+            signature,
+            cborContent
+        ) as boolean;
+    }
 
     /**
      * Signs a filecoin transaction
