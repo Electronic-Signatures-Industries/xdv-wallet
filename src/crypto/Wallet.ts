@@ -1,4 +1,4 @@
-const filecoinSigner = require('@zondax/filecoin-signer');
+const filecoinSigner = require('@zondax/filecoin-signing-tools');
 import PouchDB from 'pouchdb';
 import { createKeyPair, sign } from '@erebos/secp256k1';
 import { ec, eddsa } from 'elliptic';
@@ -13,12 +13,10 @@ import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
 import { Subject } from 'rxjs';
 import { SwarmFeed } from '../swarm/feed';
-import { type } from 'os';
 import {
     deriveKeyFromMnemonic,
     deriveEth2ValidatorKeys,
 } from "@chainsafe/bls-keygen";
-import { FileKeyInfo } from 'xml-crypto';
 export type AlgorithmTypeString = keyof typeof AlgorithmType;
 export enum AlgorithmType {
     RSA,
