@@ -1,4 +1,4 @@
-const filecoinSigner = require('@zondax/filecoin-signing-tools');
+const filecoinSigner = require('@zondax/filecoin-signing-tools/js');
 import PouchDB from 'pouchdb';
 import { createKeyPair, sign } from '@erebos/secp256k1';
 import { ec, eddsa } from 'elliptic';
