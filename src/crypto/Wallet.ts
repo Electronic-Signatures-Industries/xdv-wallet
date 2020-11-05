@@ -8,6 +8,7 @@ import { HDNode } from 'ethers/utils';
 import { IsDefined, IsOptional, IsString } from 'class-validator';
 import { JOSEService } from './JOSEService';
 import { JWE, JWK } from 'node-jose';
+import { createEd25519 } from '../../src/rust/crypto/pkg/zengox_curv';
 import { JWTService } from './JWTService';
 import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
@@ -527,6 +528,7 @@ export class Wallet {
      */
     public getEd25519(): eddsa.KeyPair {
         const ed25519 = new eddsa('ed25519');
+        createEd25519()
         // const hdkey = HDKey.fromExtendedKey(HDNode.fromMnemonic(this.mnemonic).extendedKey);
         const { key } = getMasterKeyFromSeed(ethers.utils.HDNode.mnemonicToSeed(this.mnemonic));
         const keypair = ed25519.keyFromSecret(key);
