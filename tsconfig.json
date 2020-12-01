@@ -5,7 +5,7 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "outDir": "./lib",
-    "module": "esnext",
+    "module": "CommonJS",
     "lib": ["dom", "esnext"],
     "importHelpers": true,
     "declaration": true,
