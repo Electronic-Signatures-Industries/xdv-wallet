@@ -4,7 +4,7 @@ import { composePrivateKey, decomposePrivateKey } from 'crypto-key-composer';
 import { ec, eddsa } from 'elliptic';
 import { ethers } from 'ethers';
 import { LDCryptoTypes } from './LDCryptoTypes';
-import { PrivateKey } from './../../src/did/PrivateKey';
+import { PrivateKey } from '../did';
 import { PublicKey } from '../did';
 const Rasha = require('rasha');
 const { JWT, JWK } = jose;
