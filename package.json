@@ -1,6 +1,6 @@
 {
   "name": "xdvplatform-wallet",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -61,6 +61,7 @@
     "noble-bls12-381": "^0.2.3",
     "node-forge": "^0.9.1",
     "node-jose": "^1.1.4",
+    "p12-pem": "^1.0.4",
     "pouchdb": "^7.2.1",
     "rasha": "^1.2.5",
     "rxjs": "^6.5.5",

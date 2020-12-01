@@ -4,20 +4,19 @@ import { createKeyPair, sign } from '@erebos/secp256k1';
 import { ec, eddsa } from 'elliptic';
 import { ethers } from 'ethers';
 import { getMasterKeyFromSeed } from 'ed25519-hd-key';
-import { HDNode } from 'ethers/utils';
+import { formatSignature, HDNode } from 'ethers/utils';
 import { IsDefined, IsOptional, IsString } from 'class-validator';
 import { JOSEService } from './JOSEService';
 import { JWE, JWK } from 'node-jose';
-import { createEd25519 } from '../../src/rust/crypto/pkg/zengox_curv';
+// import { createEd25519 } from '../../src/rust/crypto/pkg/zengox_curv';
 import { JWTService } from './JWTService';
 import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
 import { Subject } from 'rxjs';
 import { SwarmFeed } from '../swarm/feed';
-import {
-    deriveKeyFromMnemonic,
-    deriveEth2ValidatorKeys,
-} from "@chainsafe/bls-keygen";
+import * as p12 from 'p12-pem';
+
+
 export type AlgorithmTypeString = keyof typeof AlgorithmType;
 export enum AlgorithmType {
     RSA,
@@ -131,7 +130,7 @@ export class Wallet {
                 signature = filecoinSigner.transactionSignLotus(
                     tx,
                     pvk
-                );                
+                );
             }
             return [null, signature];
         }
@@ -495,11 +494,14 @@ export class Wallet {
         });
     }
 
-
+    public extractP12(p12FilePath: string, password: string) {
+        const { pemKey, pemCertificate, commonName } = p12.getPemFromP12(p12FilePath, password);
+        return { pemKey, pemCertificate, commonName }
+    }
     /**
      * Derives a new child Wallet
      */
-    public deriveChild(sequence: number, derivation = `m/44'/60'/0'/0`): ethers.HDNode {
+    public deriveChild(sequence: number, derivation = `m/44'/60'/0'/0`): any {
         const masterKey = HDNode.fromMnemonic(this.mnemonic);
         return masterKey.derivePath(`${derivation}/${sequence}`);
     }
@@ -514,12 +516,12 @@ export class Wallet {
     /**
      * Derives a wallet from a path
      */
-    public deriveFromPath(path: string): ethers.HDNode {
+    public deriveFromPath(path: string): any {
         const node = HDNode.fromMnemonic(this.mnemonic).derivePath(path);
         return node;
     }
 
-    public getFilecoinDeriveChild(): ethers.HDNode {
+    public getFilecoinDeriveChild(): any {
         return this.deriveFromPath(`m/44'/461'/0/0/1`);
     }
 
@@ -528,7 +530,6 @@ export class Wallet {
      */
     public getEd25519(): eddsa.KeyPair {
         const ed25519 = new eddsa('ed25519');
-        createEd25519()
         // const hdkey = HDKey.fromExtendedKey(HDNode.fromMnemonic(this.mnemonic).extendedKey);
         const { key } = getMasterKeyFromSeed(ethers.utils.HDNode.mnemonicToSeed(this.mnemonic));
         const keypair = ed25519.keyFromSecret(key);
@@ -547,14 +548,6 @@ export class Wallet {
         const keypair = ES256k.keyFromPrivate(HDNode.fromMnemonic(this.mnemonic).privateKey);
         return keypair;
     }
-
-    public getBlsMasterKey(): any {
-        const masterKey = deriveKeyFromMnemonic(this.mnemonic)
-        return {
-            deriveValidatorKeys: (id: number) => deriveEth2ValidatorKeys(masterKey, id)
-        };
-    }
-
 
     public static getRSA256Standalone(len: number = 2048): Promise<JWK.RSAKey> {
         return JWK.createKey('RSA', len, {
