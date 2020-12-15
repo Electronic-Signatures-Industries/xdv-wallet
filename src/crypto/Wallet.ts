@@ -4,7 +4,6 @@ import { createKeyPair, sign } from '@erebos/secp256k1';
 import { ec, eddsa } from 'elliptic';
 import { ethers } from 'ethers';
 import { getMasterKeyFromSeed } from 'ed25519-hd-key';
-import { formatSignature, HDNode } from 'ethers/utils';
 import { IsDefined, IsOptional, IsString } from 'class-validator';
 import { JOSEService } from './JOSEService';
 import { JWE, JWK } from 'node-jose';
@@ -15,6 +14,7 @@ import { LDCryptoTypes } from './LDCryptoTypes';
 import { Subject } from 'rxjs';
 import { SwarmFeed } from '../swarm/feed';
 import * as p12 from 'p12-pem';
+import { mnemonicToSeed } from 'ethers/lib/utils';
 
 
 export type AlgorithmTypeString = keyof typeof AlgorithmType;
@@ -365,9 +365,15 @@ export class Wallet {
         const canUseIt = await this.canUse();
 
 
+        let key;
         if (canUseIt) {
-            const key: ec.KeyPair | eddsa.KeyPair = await this.getPrivateKey(algorithm);
-            return [null, key.sign(payload).toHex()];
+            if (algorithm === 'ED25519') {
+                key = await this.getPrivateKey(algorithm);
+                return [null, key.sign(payload).toHex()];
+            } else if (algorithm === 'ES256K') {
+                key = await this.getPrivateKey(algorithm);
+                return [null, key.sign(payload).toHex()];
+            }
         }
         return [new Error('invalid_passphrase')]
     }
@@ -502,7 +508,7 @@ export class Wallet {
      * Derives a new child Wallet
      */
     public deriveChild(sequence: number, derivation = `m/44'/60'/0'/0`): any {
-        const masterKey = HDNode.fromMnemonic(this.mnemonic);
+        const masterKey = ethers.utils.HDNode.fromMnemonic(this.mnemonic);
         return masterKey.derivePath(`${derivation}/${sequence}`);
     }
 
@@ -517,7 +523,7 @@ export class Wallet {
      * Derives a wallet from a path
      */
     public deriveFromPath(path: string): any {
-        const node = HDNode.fromMnemonic(this.mnemonic).derivePath(path);
+        const node = ethers.utils.HDNode.fromMnemonic(this.mnemonic).derivePath(path);
         return node;
     }
 
@@ -531,7 +537,7 @@ export class Wallet {
     public getEd25519(): eddsa.KeyPair {
         const ed25519 = new eddsa('ed25519');
         // const hdkey = HDKey.fromExtendedKey(HDNode.fromMnemonic(this.mnemonic).extendedKey);
-        const { key } = getMasterKeyFromSeed(HDNode.mnemonicToSeed(this.mnemonic));
+        const { key } = getMasterKeyFromSeed(mnemonicToSeed(this.mnemonic));
         const keypair = ed25519.keyFromSecret(key);
         return keypair;
     }
@@ -539,13 +545,13 @@ export class Wallet {
 
     public getP256(): ec.KeyPair {
         const p256 = new ec('p256');
-        const keypair = p256.keyFromPrivate(HDNode.fromMnemonic(this.mnemonic).privateKey);
+        const keypair = p256.keyFromPrivate(ethers.utils.HDNode.fromMnemonic(this.mnemonic).privateKey);
         return keypair;
     }
 
     public getES256K(): ec.KeyPair {
         const ES256k = new ec('secp256k1');
-        const keypair = ES256k.keyFromPrivate(HDNode.fromMnemonic(this.mnemonic).privateKey);
+        const keypair = ES256k.keyFromPrivate(ethers.utils.HDNode.fromMnemonic(this.mnemonic).privateKey);
         return keypair;
     }
 
