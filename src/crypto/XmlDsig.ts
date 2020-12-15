@@ -1,7 +1,7 @@
 import * as forge from 'node-forge';
 import { create } from 'xmlbuilder2';
 import { FileKeyInfo, SignedXml } from 'xml-crypto';
-import { JWK } from 'jose';
+import { JWK } from 'node-jose';
 
 function KeyInfoProvider(pem: string) {
 
@@ -58,7 +58,7 @@ export class XmlDsig {
         sig.signingKey = signingKey;
         sig.keyInfoProvider = new KeyInfoProvider(selfSignedCert)
         sig.computeSignature(document)
-        const output = sig.signedXml;
+        const output = sig.getSignedXml();
         let feSigned = create(output).end({ format: 'object' });
 
         return { xml: output, json: feSigned };
@@ -85,7 +85,7 @@ export class XmlDsig {
         sig.canonicalizationAlgorithm = 'http://www.w3.org/2001/10/xml-exc-c14n#';
     
         sig.keyInfoProvider = new FileKeyInfo(selfSignedCert)
-        sig.loadSignature(signature.node);
+        sig.loadSignature(signature.node as any);
         return sig.checkSignature(document);
     }
 }

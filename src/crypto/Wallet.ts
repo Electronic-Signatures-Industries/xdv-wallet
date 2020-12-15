@@ -81,9 +81,9 @@ export class KeyStore implements KeyStoreModel {
 type FilecoinSignTypes = 'filecoin' | 'lotus';
 export class Wallet {
     public id: string;
-    public onRequestPassphraseSubscriber: Subject = new Subject<string>();
-    public onRequestPassphraseWallet: Subject = new Subject<string>();
-    public onSignExternal: Subject = new Subject<{
+    public onRequestPassphraseSubscriber: Subject<any> = new Subject<any>();
+    public onRequestPassphraseWallet: Subject<any> = new Subject<any>();
+    public onSignExternal: Subject<any> = new Subject<{
         isEnabled: boolean;
         signature: string | Buffer;
     }>();
@@ -172,7 +172,7 @@ export class Wallet {
                 // }
                 const canUseIt = await this.canUse();
                 if (canUseIt) {
-                    return sign(data, keypair);
+                    return sign(data, keypair as any);
                 }
 
             },
@@ -367,7 +367,7 @@ export class Wallet {
 
         if (canUseIt) {
             const key: ec.KeyPair | eddsa.KeyPair = await this.getPrivateKey(algorithm);
-            return [null, key.sign(Buffer).toHex()];
+            return [null, key.sign(payload).toHex()];
         }
         return [new Error('invalid_passphrase')]
     }
@@ -531,7 +531,7 @@ export class Wallet {
     public getEd25519(): eddsa.KeyPair {
         const ed25519 = new eddsa('ed25519');
         // const hdkey = HDKey.fromExtendedKey(HDNode.fromMnemonic(this.mnemonic).extendedKey);
-        const { key } = getMasterKeyFromSeed(ethers.utils.HDNode.mnemonicToSeed(this.mnemonic));
+        const { key } = getMasterKeyFromSeed(HDNode.mnemonicToSeed(this.mnemonic));
         const keypair = ed25519.keyFromSecret(key);
         return keypair;
     }

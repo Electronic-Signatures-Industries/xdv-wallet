@@ -1,6 +1,6 @@
 {
   "name": "xdvplatform-wallet",
-  "version": "3.0.8",
+  "version": "3.1.0",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -16,6 +16,7 @@
     "url": "https://github.com/molekilla/xdv-fe-builder"
   },
   "devDependencies": {
+    "@types/elliptic": "^6.4.12",
     "@types/expect": "^24.3.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.1",
@@ -33,7 +34,6 @@
     "@erebos/bzz-feed": "^0.13.2",
     "@erebos/keccak256": "^0.13.1",
     "@erebos/secp256k1": "^0.10.0",
-    "@types/elliptic": "^6.4.12",
     "@zondax/filecoin-signing-tools": "^0.11.0",
     "arraybuffer-concat": "0.0.1",
     "arraybuffer-to-string": "^1.0.2",
@@ -46,8 +46,8 @@
     "did-resolver": "^1.1.0",
     "ec-key": "0.0.4",
     "ed25519-hd-key": "^1.1.2",
-    "elliptic": "^6.5.2",
-    "ethers": "^4.0.47",
+    "elliptic": "^6.5.3",
+    "ethers": "^5.0.24",
     "ethr-did-resolver": "^2.2.0",
     "hash.js": "^1.1.7",
     "hdkey-secp256r1": "^1.1.0",
@@ -64,7 +64,7 @@
     "rasha": "^1.2.5",
     "rxjs": "^6.5.5",
     "slip39": "^0.1.7",
-    "solido-provider-ethers": "^1.1.1",
+    "solido-provider-ethers": "^2.0.1",
     "text-encoding-polyfill": "^0.6.7",
     "webcrypto": "^0.1.1",
     "xml-crypto": "^1.5.3",
