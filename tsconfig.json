@@ -1,25 +1,21 @@
 {
   "compilerOptions": {
     "experimentalDecorators": true,
-    "baseUrl": ".",
-    "lib": [
-      "es2016"
-    ],
-    "paths": {
-      "*": [
-        "./src"
-      ]
-    },
-    "target": "es2016",
-    "module": "commonjs",
+    "resolveJsonModule": true,
     "moduleResolution": "node",
-    "declaration": true,
-    "sourceMap": true,
     "esModuleInterop": true,
-    "outDir": "./lib"
+    "outDir": "./lib",
+    "module": "CommonJS",
+    "target": "ES2017",
+    "lib": ["dom", "esnext"],
+    "importHelpers": true,
+    "declaration": true,
+    "strict": false,
+    "sourceMap": true,
+    "rootDir": "./src",
   },
   "include": [
-    "./src/**/*.ts"
+    "src", "types"
   ],
   "exclude": [
     "./node_modules", "./src/**/*_spec.ts"

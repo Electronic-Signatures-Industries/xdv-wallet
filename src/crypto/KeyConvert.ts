@@ -1,14 +1,12 @@
-import * as jose from 'node-jose';
 import bs58 from 'bs58';
 import { composePrivateKey, decomposePrivateKey } from 'crypto-key-composer';
 import { ec, eddsa } from 'elliptic';
 import { ethers } from 'ethers';
 import { LDCryptoTypes } from './LDCryptoTypes';
-import { PrivateKey } from './../../src/did/PrivateKey';
+import { PrivateKey } from '../did';
 import { PublicKey } from '../did';
 const Rasha = require('rasha');
-const { JWT, JWK } = jose;
-const jwkToPem = require('jwk-to-pem');
+import { JWK } from 'node-jose';
 const ECKey = require('ec-key');
 
 export class X509Info {
@@ -22,7 +20,7 @@ export class X509Info {
 
 export class KeyConvert {
 
-    public static async getX509RSA(kp: JWK.RSAKey) {
+    public static async getX509RSA(kp: any) {
 
 
         let jwk = kp;
@@ -221,7 +219,7 @@ export class KeyConvert {
                         id: `did:key:${id}`,
                         type: 'JwsVerificationKey2020',
                         publicKeyJwk: key.publicJwk,
-                    }, {});
+                    }, {}) as any;
 
             case LDCryptoTypes.RSA:
                 return Object.assign(
@@ -230,7 +228,7 @@ export class KeyConvert {
                         id: `did:key:${id}`,
                         type: 'RsaVerificationKey2018',
                         publicKeyPem: key.publicPem,
-                    }, {});
+                    }, {}) as any;
 
             case LDCryptoTypes.Sepc256r1:
                 return Object.assign(

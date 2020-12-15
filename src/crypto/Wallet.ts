@@ -1,21 +1,22 @@
+const filecoinSigner = require('@zondax/filecoin-signing-tools/js');
 import PouchDB from 'pouchdb';
 import { createKeyPair, sign } from '@erebos/secp256k1';
 import { ec, eddsa } from 'elliptic';
 import { ethers } from 'ethers';
 import { getMasterKeyFromSeed } from 'ed25519-hd-key';
-import { HDNode } from 'ethers/utils';
 import { IsDefined, IsOptional, IsString } from 'class-validator';
 import { JOSEService } from './JOSEService';
 import { JWE, JWK } from 'node-jose';
+// import { createEd25519 } from '../../src/rust/crypto/pkg/zengox_curv';
 import { JWTService } from './JWTService';
 import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
 import { Subject } from 'rxjs';
 import { SwarmFeed } from '../swarm/feed';
-import {
-    deriveKeyFromMnemonic,
-    deriveEth2ValidatorKeys,
-} from "@chainsafe/bls-keygen";
+import * as p12 from 'p12-pem';
+import { mnemonicToSeed } from 'ethers/lib/utils';
+
+
 export type AlgorithmTypeString = keyof typeof AlgorithmType;
 export enum AlgorithmType {
     RSA,
@@ -51,13 +52,38 @@ export interface KeystoreDbModel {
     publicKeys?: any;
 }
 
-export interface KeyStoreModel { BLS?: any, ES256K: any; P256: any; RSA: any; ED25519: any; }
+export interface KeyStoreModel {
+    BLS?: any,
+    ES256K: any;
+    P256: any;
+    RSA: any;
+    ED25519: any;
+    Filecoin: any;
+    Vechain?: any;
+    Polkadot?: any;
+}
 
+export class KeyStore implements KeyStoreModel {
+    public ED25519: any;
+    public ES256K: any;
+    public P256: any;
+    public RSA: any;
+    public BLS: any;
+    public Filecoin: any;
+    public Vechain: any;
+    public Polkadot: any;
+    constructor(
+    ) {
+
+    }
+}
+
+type FilecoinSignTypes = 'filecoin' | 'lotus';
 export class Wallet {
     public id: string;
-    public onRequestPassphraseSubscriber: Subject = new Subject<string>();
-    public onRequestPassphraseWallet: Subject = new Subject<string>();
-    public onSignExternal: Subject = new Subject<{
+    public onRequestPassphraseSubscriber: Subject<any> = new Subject<any>();
+    public onRequestPassphraseWallet: Subject<any> = new Subject<any>();
+    public onSignExternal: Subject<any> = new Subject<{
         isEnabled: boolean;
         signature: string | Buffer;
     }>();
@@ -69,6 +95,47 @@ export class Wallet {
         PouchDB.plugin(require('crypto-pouch'));
     }
 
+    /**
+     * Verifies a filecoin signed transaction
+     * @param signature a filecoin signature
+     * @param cborContent a filecoint raw transaction
+     */
+    public async verifyFilecoinSignature(signature: string, cborContent: string): Promise<boolean> {
+        return filecoinSigner.verifySignature(
+            signature,
+            cborContent
+        ) as boolean;
+    }
+
+    /**
+     * Signs a filecoin transaction
+     * @param transaction a filecoin transaction
+     * @param signer Sets the filecoin or lotus signer
+     */
+    public async signFilecoinTransaction(transaction: any, signer: FilecoinSignTypes): Promise<[Error, any?]> {
+
+        this.onRequestPassphraseSubscriber.next({ type: 'request_tx', transaction, algorithm: signer.toString() });
+
+        const canUseIt = await this.canUse();
+        const tx = filecoinSigner.transactionSerialize(transaction);
+        if (canUseIt) {
+            let signature;
+            const pvk = await this.getFilecoinDeriveChild();
+            if (signer === 'filecoin') {
+                signature = filecoinSigner.transactionSign(
+                    tx,
+                    pvk
+                );
+            } else {
+                signature = filecoinSigner.transactionSignLotus(
+                    tx,
+                    pvk
+                );
+            }
+            return [null, signature];
+        }
+        return [new Error('invalid_passphrase')]
+    }
 
     /**
      * Creates a new queryable swarm feed
@@ -105,7 +172,7 @@ export class Wallet {
                 // }
                 const canUseIt = await this.canUse();
                 if (canUseIt) {
-                    return sign(data, keypair);
+                    return sign(data, keypair as any);
                 }
 
             },
@@ -153,7 +220,6 @@ export class Wallet {
 
     }
 
-
     /**
      * Sets a public key in storage
      * @param id 
@@ -180,21 +246,13 @@ export class Wallet {
         this.mnemonic = mnemonic
 
 
-        let keystores: KeyStoreModel = {
-            ED25519: '',
-            ES256K: '',
-            P256: '',
-            RSA: '',
-            BLS: '',
-        }
+        let keystores: KeyStoreModel = new KeyStore()
+        let keyExports: KeyStoreModel = new KeyStore();
 
-        let keyExports: KeyStoreModel = {
-            ED25519: '',
-            ES256K: '',
-            P256: '',
-            RSA: '',
-            BLS: '',
-        }
+        // Filecoin
+        let keyFil = this.getFilecoinDeriveChild();
+        keystores.Filecoin = keyFil;
+
         // ED25519
         let kp = this.getEd25519();
         keystores.ED25519 = kp.getSecret('hex');
@@ -307,9 +365,15 @@ export class Wallet {
         const canUseIt = await this.canUse();
 
 
+        let key;
         if (canUseIt) {
-            const key: ec.KeyPair | eddsa.KeyPair = await this.getPrivateKey(algorithm);
-            return [null, key.sign(Buffer).toHex()];
+            if (algorithm === 'ED25519') {
+                key = await this.getPrivateKey(algorithm);
+                return [null, key.sign(payload).toHex()];
+            } else if (algorithm === 'ES256K') {
+                key = await this.getPrivateKey(algorithm);
+                return [null, key.sign(payload).toHex()];
+            }
         }
         return [new Error('invalid_passphrase')]
     }
@@ -436,17 +500,16 @@ export class Wallet {
         });
     }
 
-
+    public extractP12(p12FilePath: string, password: string) {
+        const { pemKey, pemCertificate, commonName } = p12.getPemFromP12(p12FilePath, password);
+        return { pemKey, pemCertificate, commonName }
+    }
     /**
      * Derives a new child Wallet
      */
-    public deriveChild(sequence: number, derivation = `m/44'/60'/0'/0`): string {
-
-        const masterKey = HDNode.fromMnemonic(this.mnemonic);
-        const hdnode = masterKey.derivePath(`${derivation}/${sequence}`);
-        //    console.log(hdnode.path, hdnode.fingerprint, hdnode.parentFingerprint);
-        const ethersWallet = new ethers.Wallet(hdnode);
-        return ethersWallet.mnemonic;
+    public deriveChild(sequence: number, derivation = `m/44'/60'/0'/0`): any {
+        const masterKey = ethers.utils.HDNode.fromMnemonic(this.mnemonic);
+        return masterKey.derivePath(`${derivation}/${sequence}`);
     }
 
     public get path() {
@@ -459,17 +522,22 @@ export class Wallet {
     /**
      * Derives a wallet from a path
      */
-    public deriveFromPath(path: string): string {
-
-        const node = HDNode.fromMnemonic(this.mnemonic).derivePath(path);
-        const ethersWallet = new ethers.Wallet(node);
-        return ethersWallet.mnemonic;
+    public deriveFromPath(path: string): any {
+        const node = ethers.utils.HDNode.fromMnemonic(this.mnemonic).derivePath(path);
+        return node;
     }
 
+    public getFilecoinDeriveChild(): any {
+        return this.deriveFromPath(`m/44'/461'/0/0/1`);
+    }
+
+    /**
+     * Gets EdDSA key pair
+     */
     public getEd25519(): eddsa.KeyPair {
         const ed25519 = new eddsa('ed25519');
         // const hdkey = HDKey.fromExtendedKey(HDNode.fromMnemonic(this.mnemonic).extendedKey);
-        const { key } = getMasterKeyFromSeed(ethers.utils.HDNode.mnemonicToSeed(this.mnemonic));
+        const { key } = getMasterKeyFromSeed(mnemonicToSeed(this.mnemonic));
         const keypair = ed25519.keyFromSecret(key);
         return keypair;
     }
@@ -477,23 +545,15 @@ export class Wallet {
 
     public getP256(): ec.KeyPair {
         const p256 = new ec('p256');
-        const keypair = p256.keyFromPrivate(HDNode.fromMnemonic(this.mnemonic).privateKey);
+        const keypair = p256.keyFromPrivate(ethers.utils.HDNode.fromMnemonic(this.mnemonic).privateKey);
         return keypair;
     }
 
     public getES256K(): ec.KeyPair {
         const ES256k = new ec('secp256k1');
-        const keypair = ES256k.keyFromPrivate(HDNode.fromMnemonic(this.mnemonic).privateKey);
+        const keypair = ES256k.keyFromPrivate(ethers.utils.HDNode.fromMnemonic(this.mnemonic).privateKey);
         return keypair;
     }
-
-    public getBlsMasterKey(): any {
-        const masterKey = deriveKeyFromMnemonic(this.mnemonic)
-        return {
-            deriveValidatorKeys: (id: number) => deriveEth2ValidatorKeys(masterKey, id)
-        };
-    }
-
 
     public static getRSA256Standalone(len: number = 2048): Promise<JWK.RSAKey> {
         return JWK.createKey('RSA', len, {
