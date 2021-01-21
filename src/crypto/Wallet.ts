@@ -12,7 +12,6 @@ import { JWTService } from './JWTService';
 import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
 import { Subject } from 'rxjs';
-import { SwarmFeed } from '../swarm/feed';
 import * as p12 from 'p12-pem';
 import { mnemonicToSeed } from 'ethers/lib/utils';
 
@@ -138,53 +137,6 @@ export class Wallet {
     }
 
     /**
-     * Creates a new queryable swarm feed
-     * @param user 
-     */
-    public getSwarmNodeQueryable(user: any, nodeUrl?: string) {
-        const swarmFeed = new SwarmFeed(
-            () => Promise.resolve(false),
-            user,
-            nodeUrl,
-        );
-        swarmFeed.initialize();
-
-        return swarmFeed;
-    }
-
-    /**
-     * Creates a new complete swarm feed
-     * @param keypair 
-     */
-    public async getSwarmNodeClient(user: any, algorithm: AlgorithmTypeString = 'ES256K', nodeUrl?: string) {
-
-        if (algorithm !== 'ES256K') throw new Error('Must be ES256K');
-        const keypair = await this.getPrivateKey(algorithm);
-        const swarmFeed = new SwarmFeed(
-            async (data) => {
-                if (this.onRequestPassphraseSubscriber.observers.length === 0) return sign(data, keypair);
-                this.onRequestPassphraseSubscriber.next({ type: 'request_tx', payload: data, algorithm });
-                // const signExternalP = new Promise((resolve, reject) => this.onSignExternal.next({ isDIDSigner: true, payload: data, next: resolve }));
-
-                // const signExternal = await signExternalP;
-                // if (signExternal.isEnabled) {
-                //     return signExternal.signature;
-                // }
-                const canUseIt = await this.canUse();
-                if (canUseIt) {
-                    return sign(data, keypair as any);
-                }
-
-            },
-            user,
-            () => Promise.resolve(),
-            nodeUrl
-        );
-        swarmFeed.initialize();
-        return swarmFeed;
-    }
-
-    /**
      * Gets a public key from storage
      * @param id 
      * @param algorithm 
@@ -233,8 +185,12 @@ export class Wallet {
             key: value
         });
     }
-    public async createWallet(password: string, mnemonic?: string) {
-        const id = Buffer.from(ethers.utils.randomBytes(100)).toString('base64');
+    public async createWallet(password: string, options: any, ) {
+        let id = Buffer.from(ethers.utils.randomBytes(100)).toString('base64');
+        if(options.customId){
+            id = options.customId;
+        }
+        let mnemonic = options.mnemonic;
 
         if (mnemonic) {
             this.ethersWallet = ethers.Wallet.fromMnemonic(mnemonic);
