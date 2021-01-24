@@ -9,3 +9,5 @@ export * from './CMSSigner';
 export * from './X509';
 export * from './XmlDsig';
 export * from './Wallet';
+export * from './providers/SwarmAccounts';
+export * from './providers/SwarmWallet';

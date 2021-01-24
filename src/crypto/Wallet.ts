@@ -1,6 +1,5 @@
 const filecoinSigner = require('@zondax/filecoin-signing-tools/js');
 import PouchDB from 'pouchdb';
-import { createKeyPair, sign } from '@erebos/secp256k1';
 import { ec, eddsa } from 'elliptic';
 import { ethers } from 'ethers';
 import { getMasterKeyFromSeed } from 'ed25519-hd-key';
@@ -187,8 +186,8 @@ export class Wallet {
     }
     public async createWallet(password: string, options: any, ) {
         let id = Buffer.from(ethers.utils.randomBytes(100)).toString('base64');
-        if(options.customId){
-            id = options.customId;
+        if(options.id){
+            id = options.id;
         }
         let mnemonic = options.mnemonic;
 

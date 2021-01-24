@@ -1,6 +1,6 @@
 {
   "name": "xdvplatform-wallet",
-  "version": "4.0.0",
+  "version": "4.0.2",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -31,10 +31,6 @@
   "dependencies": {
     "@chainsafe/bls-hd-key": "0.0.1",
     "@decent-bet/solido": "^1.1.6",
-    "@erebos/bzz-browser": "^0.13.0",
-    "@erebos/bzz-feed": "^0.13.2",
-    "@erebos/keccak256": "^0.13.1",
-    "@erebos/secp256k1": "^0.10.0",
     "@zondax/filecoin-signing-tools": "^0.11.0",
     "arraybuffer-concat": "0.0.1",
     "arraybuffer-to-string": "^1.0.2",
