@@ -1,7 +1,7 @@
 {
   "name": "xdvplatform-wallet",
-  "version": "4.0.2",
-  "description": "",
+  "version": "4.0.4",
+  "description": "A wallet for documents and tokens",
   "main": "lib/index.js",
   "scripts": {
     "test": "ts-mocha --timeout 540000 -p tsconfig.json src/**/*_spec.ts",

@@ -584,6 +584,6 @@ Creates a new random HD Wallet
 ```
 
 @molekilla, Rogelio Morrell C. 
-Copyright 2020
+Copyright 2020-2021
 
 ##### MIT License

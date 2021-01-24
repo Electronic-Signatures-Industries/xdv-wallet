@@ -1,10 +1,14 @@
 import { ethers } from 'ethers';
 import { SwarmWallet } from './SwarmWallet';
-import { FDS } from 'fds.js';
+const fds = require('fds.js');
 
+/**
+ * Account management for swarm wallets
+ */
 export class SwarmAccounts {
-    constructor(public client: any, options: any = {}) {
-        this.client = new FDS(Object.assign({}, {
+    private client: any;
+    constructor(options: any = {}) {
+        this.client = new fds(Object.assign({}, {
             swarmGateway: 'https://swarm.fairdatasociety.org',
             // ethGateway: 'https://geth-noordung.fairdatasociety.org',
             // chainID: '3'
@@ -23,7 +27,7 @@ export class SwarmAccounts {
         const ethersWallet = ethers.Wallet.fromMnemonic(mnemonic.phrase);
         const privateKey = ethersWallet.privateKey;
         const publicKey = ethersWallet.publicKey;
-        const options = { id: publicKey, mnemonic };
+        const options = { id: publicKey, mnemonic: mnemonic.phrase };
 
         const user = await this.client.RestoreAccountFromPrivateKey(username, password, privateKey);
 
@@ -31,4 +35,9 @@ export class SwarmAccounts {
         wallet.setUser(user);
         return { xdv: wallet };
     }
+
+    async openFDS(username: string, password: string) {
+        const user = await this.client.UnlockAccount(username, password);
+        return user;
+    }    
 }
