@@ -420,9 +420,6 @@ export class Wallet {
         return node;
     }
 
-    public getFilecoinDeriveChild(): any {
-        return this.deriveFromPath(`m/44'/461'/0/0/1`);
-    }
 
     /**
      * Gets EdDSA key pair
@@ -436,24 +433,10 @@ export class Wallet {
     }
 
 
-    public getP256(): ec.KeyPair {
-        const p256 = new ec('p256');
-        const keypair = p256.keyFromPrivate(ethers.utils.HDNode.fromMnemonic(this.mnemonic).privateKey);
-        return keypair;
-    }
-
     public getES256K(): ec.KeyPair {
         const ES256k = new ec('secp256k1');
         const keypair = ES256k.keyFromPrivate(ethers.utils.HDNode.fromMnemonic(this.mnemonic).privateKey);
         return keypair;
     }
-
-    public static getRSA256Standalone(len: number = 2048): Promise<JWK.RSAKey> {
-        return JWK.createKey('RSA', len, {
-            alg: 'RS256',
-            use: 'sig'
-        });
-    }
-
 
 }
