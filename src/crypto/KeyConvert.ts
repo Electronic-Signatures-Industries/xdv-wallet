@@ -259,18 +259,7 @@ export class KeyConvert {
                     }, {});
         }
     }
-    /**
- * Returns private keys in JWK and PEM formats
- * @param kp Key pair
- * @param passphrase passphrase 
- */
-    public static getRSA(rsa: any) {
-        return {
-            jwk: JWK.asKey(rsa, "json"),
-            pem: JWK.asKey(rsa, 'pkcs8')
-        };
-    }
-
+  
 
 }
 
