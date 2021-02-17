@@ -1,4 +1,3 @@
-const filecoinSigner = require('@zondax/filecoin-signing-tools/js');
 import PouchDB from 'pouchdb';
 import { ec, eddsa } from 'elliptic';
 import { ethers } from 'ethers';
@@ -6,7 +5,6 @@ import { getMasterKeyFromSeed } from 'ed25519-hd-key';
 import { IsDefined, IsOptional, IsString } from 'class-validator';
 import { JOSEService } from './JOSEService';
 import { JWE, JWK } from 'node-jose';
-// import { createEd25519 } from '../../src/rust/crypto/pkg/zengox_curv';
 import { JWTService } from './JWTService';
 import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
@@ -93,47 +91,6 @@ export class Wallet {
         PouchDB.plugin(require('crypto-pouch'));
     }
 
-    /**
-     * Verifies a filecoin signed transaction
-     * @param signature a filecoin signature
-     * @param cborContent a filecoint raw transaction
-     */
-    public async verifyFilecoinSignature(signature: string, cborContent: string): Promise<boolean> {
-        return filecoinSigner.verifySignature(
-            signature,
-            cborContent
-        ) as boolean;
-    }
-
-    /**
-     * Signs a filecoin transaction
-     * @param transaction a filecoin transaction
-     * @param signer Sets the filecoin or lotus signer
-     */
-    public async signFilecoinTransaction(transaction: any, signer: FilecoinSignTypes): Promise<[Error, any?]> {
-
-        this.onRequestPassphraseSubscriber.next({ type: 'request_tx', transaction, algorithm: signer.toString() });
-
-        const canUseIt = await this.canUse();
-        const tx = filecoinSigner.transactionSerialize(transaction);
-        if (canUseIt) {
-            let signature;
-            const pvk = await this.getFilecoinDeriveChild();
-            if (signer === 'filecoin') {
-                signature = filecoinSigner.transactionSign(
-                    tx,
-                    pvk
-                );
-            } else {
-                signature = filecoinSigner.transactionSignLotus(
-                    tx,
-                    pvk
-                );
-            }
-            return [null, signature];
-        }
-        return [new Error('invalid_passphrase')]
-    }
 
     /**
      * Gets a public key from storage
@@ -204,10 +161,6 @@ export class Wallet {
         let keystores: KeyStoreModel = new KeyStore()
         let keyExports: KeyStoreModel = new KeyStore();
 
-        // Filecoin
-        let keyFil = this.getFilecoinDeriveChild();
-        keystores.Filecoin = keyFil;
-
         // ED25519
         let kp = this.getEd25519();
         keystores.ED25519 = kp.getSecret('hex');
@@ -228,21 +181,6 @@ export class Wallet {
             { publicJwk: JSON.parse(keyExports.ES256K.ldSuite.publicKeyJwk) },
             false
         );
-
-        // P256
-        kp = this.getP256();
-        keystores.P256 = kp.getPrivate('hex');
-        keyExports.P256 = await KeyConvert.getP256(kp);
-        keyExports.P256.ldJsonPublic = await KeyConvert.createLinkedDataJsonFormat(
-            LDCryptoTypes.JWK,
-            // @ts-ignore
-            { publicJwk: JSON.parse(keyExports.P256.ldSuite.publicKeyJwk) },
-            false
-        );
-        // RSA
-        kp = await Wallet.getRSA256Standalone();
-        keystores.RSA = kp.toJSON(true);
-        keyExports.RSA = await KeyConvert.getRSA(kp);
 
         const keystoreMnemonicAsString = await this.ethersWallet.encrypt(password);
 

@@ -1,6 +1,6 @@
 {
   "name": "xdvplatform-wallet",
-  "version": "4.0.4",
+  "version": "5.0.0",
   "description": "A wallet for documents and tokens",
   "main": "lib/index.js",
   "scripts": {
@@ -29,9 +29,7 @@
     "typescript": "^3.9.2"
   },
   "dependencies": {
-    "@chainsafe/bls-hd-key": "0.0.1",
     "@decent-bet/solido": "^1.1.6",
-    "@zondax/filecoin-signing-tools": "^0.11.0",
     "arraybuffer-concat": "0.0.1",
     "arraybuffer-to-string": "^1.0.2",
     "bs58": "^4.0.1",
