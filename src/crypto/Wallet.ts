@@ -9,7 +9,6 @@ import { JWTService } from './JWTService';
 import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
 import { Subject } from 'rxjs';
-import * as p12 from 'p12-pem';
 import { mnemonicToSeed } from 'ethers/lib/utils';
 
 
@@ -49,32 +48,21 @@ export interface KeystoreDbModel {
 }
 
 export interface KeyStoreModel {
-    BLS?: any,
     ES256K: any;
     P256: any;
-    RSA: any;
     ED25519: any;
-    Filecoin: any;
-    Vechain?: any;
-    Polkadot?: any;
 }
 
 export class KeyStore implements KeyStoreModel {
     public ED25519: any;
     public ES256K: any;
     public P256: any;
-    public RSA: any;
-    public BLS: any;
-    public Filecoin: any;
-    public Vechain: any;
-    public Polkadot: any;
     constructor(
     ) {
 
     }
 }
 
-type FilecoinSignTypes = 'filecoin' | 'lotus';
 export class Wallet {
     public id: string;
     public onRequestPassphraseSubscriber: Subject<any> = new Subject<any>();
@@ -101,6 +89,17 @@ export class Wallet {
 
         const content = await this.db.get(id);
         return await JWK.asKey(JSON.parse(content.key), 'jwk');
+    }
+
+
+    static createWeb3Provider(algo, wallet) {
+        // v1 - bsc
+        // web3 with signer
+    }
+
+    static createEthersProvider(algo, id, passphrase) {
+        // implementar ethers
+        // { provider, signer }
     }
 
 
@@ -239,10 +238,6 @@ export class Wallet {
         });
     }
 
-
-    public async signExternal() {
-        return this.onSignExternal.toPromise();
-    }
 
 
     /**
@@ -393,10 +388,7 @@ export class Wallet {
         });
     }
 
-    public extractP12(p12FilePath: string, password: string) {
-        const { pemKey, pemCertificate, commonName } = p12.getPemFromP12(p12FilePath, password);
-        return { pemKey, pemCertificate, commonName }
-    }
+  
     /**
      * Derives a new child Wallet
      */

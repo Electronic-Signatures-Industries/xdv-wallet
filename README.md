@@ -1,4 +1,4 @@
-# XDV Platform Wallet
+# XDV Universal Wallet
 
 
 `npm i xdvplatform-wallet`
