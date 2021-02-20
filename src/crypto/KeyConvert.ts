@@ -5,7 +5,6 @@ import { ethers } from 'ethers';
 import { LDCryptoTypes } from './LDCryptoTypes';
 import { PrivateKey } from '../did';
 import { PublicKey } from '../did';
-const Rasha = require('rasha');
 import { JWK } from 'node-jose';
 const ECKey = require('ec-key');
 
@@ -20,23 +19,7 @@ export class X509Info {
 
 export class KeyConvert {
 
-    public static async getX509RSA(kp: any) {
-
-
-        let jwk = kp;
-        // jwk = { alg: 'RS256', ...jwk };
-        const ldSuite = {
-            publicKeyJwk: kp.toJSON(),
-        }
-
-        return {
-            jwk,
-            der: undefined,
-            pemAsPrivate: await Rasha.export({ jwk: kp.toJSON(true) }),
-            pemAsPublic: await Rasha.export({ jwk: kp.toJSON() }),
-            ldSuite,
-        };
-    }
+    
 
     /**
      * Returns private keys in DER, JWK and PEM formats
@@ -208,7 +191,7 @@ export class KeyConvert {
     }
 
 
-    public static async createLinkedDataJsonFormat(algorithm: LDCryptoTypes, key: KeyLike, hasPrivate = false): (PrivateKey) {
+    public static async createLinkedDataJsonFormat(algorithm: LDCryptoTypes, key: KeyLike, hasPrivate = false): Promise<PrivateKey> {
         const id = Buffer.from(ethers.utils.randomBytes(100)).toString('base64');
         switch (algorithm) {
 

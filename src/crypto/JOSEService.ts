@@ -4,7 +4,7 @@ const  { JWT, JWK, JWE } = jose;
 
 export class KeyRecipient {
     header: any;
-    key: JWK.Key;
+    key: any;
 }
 // protected: { enc: alg // A128GCM }
 export class JOSEService {
@@ -22,7 +22,7 @@ export class JOSEService {
      * @param key JWK key
      * @param payload String or Buffer payload
      */
-    public static encrypt(keys: JWK.Key[], payload: string | Buffer) {
+    public static encrypt(keys: any[], payload: string | Buffer) {
         return JWE
         .createEncrypt([...keys])
         .update(payload)
@@ -36,7 +36,7 @@ export class JOSEService {
      * @param key JWK Key
      * @param ciphertext Encrypted content
      */
-    public static async decrypt(key: any, jwe: string): Buffer {
+    public static async decrypt(key: any, jwe: string): Promise<Buffer> {
         const res = JWE.createDecrypt(await JWK.asKey(key,'pem'))
         .decrypt(jwe);
         return res;

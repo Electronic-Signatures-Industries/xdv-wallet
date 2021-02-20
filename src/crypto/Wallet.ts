@@ -8,8 +8,9 @@ import { JWE, JWK } from 'node-jose';
 import { JWTService } from './JWTService';
 import { KeyConvert } from './KeyConvert';
 import { LDCryptoTypes } from './LDCryptoTypes';
-import { Subject } from 'rxjs';
+import { from, Subject } from 'rxjs';
 import { mnemonicToSeed } from 'ethers/lib/utils';
+import Web3 from 'web3';
 
 
 export type AlgorithmTypeString = keyof typeof AlgorithmType;
@@ -92,7 +93,34 @@ export class Wallet {
     }
 
 
-    static createWeb3Provider(algo, wallet) {
+    static async createWeb3Provider(nodeurl:string, options:any) { 
+        //Options will have 2 variables (wallet id and passphrase)
+        let web3;
+        let wallet = new Wallet();
+        let ks
+        
+        if (options.passphrase && options.walletid) {
+          
+            wallet.db.open(options.passphrase);
+            web3 = new Web3(nodeurl);
+            ks = await wallet.db.get(options.walletid);
+            
+            //open an existing wallet
+        } else if (options.passphrase && !options.walletid) {
+            wallet = await wallet.createWallet (options.passphrase)
+            web3 = new Web3(nodeurl);
+            ks = await wallet.db.get(wallet.id);
+        }
+            const privateKey = ks.keypairs.ES256K
+            web3.eth.accounts.wallet.add('0x'+ privateKey)
+            return {
+                web3, 
+                id: wallet.id
+            }
+            
+        
+
+
         // v1 - bsc
         // web3 with signer
     }
@@ -140,7 +168,7 @@ export class Wallet {
             key: value
         });
     }
-    public async createWallet(password: string, options: any, ) {
+    public async createWallet(password: string, options: any={}, ) {
         let id = Buffer.from(ethers.utils.randomBytes(100)).toString('base64');
         if(options.id){
             id = options.id;
@@ -166,14 +194,14 @@ export class Wallet {
         keyExports.ED25519 = await KeyConvert.getEd25519(kp);
         keyExports.ED25519.ldJsonPublic = await KeyConvert.createLinkedDataJsonFormat(
             LDCryptoTypes.Ed25519,
-            kp,
+            kp as any,
             false);
 
 
         // ES256K
-        kp = this.getES256K();
-        keystores.ES256K = kp.getPrivate('hex');
-        keyExports.ES256K = await KeyConvert.getES256K(kp);
+        const kpec = this.getES256K() as ec.KeyPair;
+        keystores.ES256K = kpec.getPrivate('hex');
+        keyExports.ES256K = await KeyConvert.getES256K(kpec);
         keyExports.ES256K.ldJsonPublic = await KeyConvert.createLinkedDataJsonFormat(
             LDCryptoTypes.JWK,
             // @ts-ignore
