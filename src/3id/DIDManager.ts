@@ -13,11 +13,10 @@ export class DIDManager {
      * @param wallet 
      * @param messageNotify 
      */
-    async create3ID() {
-        let seed = randomBytes(32);
+    async create3ID_Ed25519(privateKeyBytes: any) {
+        let seed = privateKeyBytes.slice(0, 32);
         const provider = new Ed25519Provider(seed)
         const did = new DID({ provider, resolver: KeyResolver.getResolver() } as unknown as DIDOptions)
-        await did.authenticate();
         return did;
     }    
 
@@ -34,7 +33,6 @@ export class DIDManager {
         const authProvider = new EthereumAuthProvider(web3provider, address);
         await threeid.connect(authProvider) 
         const did = new DID({ provider: (await threeid.getDidProvider()) as any, resolver: KeyResolver.getResolver() } as unknown)
-        await did.authenticate();
         return did;
     }    
 }

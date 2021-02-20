@@ -6,28 +6,22 @@ import { ethers } from 'ethers'
 import moment from 'moment'
 import IPFSClient from 'ipfs-http-client';
 import { keccak256 } from 'ethers/lib/utils'
-const Ipld = require('ipld')
-const IpfsBlockService = require('ipfs-block-service')
 const multicodec = require('multicodec')
 
-const initIpld = async (repo) => {
-  //const repo = new IpfsRepo(ipfsRepoPath)
-  //await repo.init({})
-  //await repo.open()
-  const blockService = new IpfsBlockService(repo)
-  return new Ipld({blockService: blockService})
-}
 
 export class IPFSManager {
     client: any;
     provider: ethers.providers.JsonRpcProvider;
     ipld: any;
+    did: DID;
 
-    async start(hostname: string){
-       this.client = IPFSClient({ url: hostname || `http://ifesa.ipfs.pa:5001` });
-       this.ipld = await initIpld(this.client);
+    constructor (did: DID) {
+        this.did = did;
     }
 
+    async start(hostname?: string){
+       this.client = IPFSClient({ url: hostname || `http://ifesa.ipfs.pa:5001` });
+    }
 
     /**
      * Converts Blob to Keccak 256 hash
@@ -39,30 +33,6 @@ export class IPFSManager {
         return keccak256(buf) as string;
     }
 
-    async setCurrentNode(
-        cid: string,
-        key: string = 'self',
-
-    ) {
-        const res = await this.client.name.publish(cid, {key});
-        return res;
-    }
-
-    async getCurrentNode(
-        key: string = 'self'
-    ) {
-        try {
-            let query = '';
-            const keys = await this.client.key.list();
-            const { id } = keys.find(i => i.name === key);
-            for await (query of this.client.name.resolve(`/ipns/${id}`)) {
-            }
-            return query.replace('/ipfs/', '');
-        } catch (e) {
-            return null;
-        }
-    }
-
     /**
      * Add Signed Object
      * @param did DID
@@ -70,28 +40,40 @@ export class IPFSManager {
      * @param previousNode If it has previous node
      */
     async addSignedObject(
-        did: DID,
-        payload: File,
-        previousNode?: any) {
+        payload: Uint8Array,
+        options = {
+            contentType: '',
+            name: '',
+            lastModified: new Date()
+        } ) {
         let temp: string;
         let content: Buffer;
-        if (payload instanceof File) {
-            temp = await this.blobToKeccak256(payload);
-            content = Buffer.from((await payload.arrayBuffer()));
-        } else {
-            throw new Error('addSignedObject: must be a file object');
 
+        // if (payload instanceof File) {
+        //     temp = await this.blobToKeccak256(payload);
+        //     content = Buffer.from((await payload.arrayBuffer()));
+        // } else 
+        
+        if (payload instanceof Uint8Array) {
+            temp = keccak256(payload);
+            content = Buffer.from(payload);
+        }
+        else {
+            throw new Error('addSignedObject: must be a file object or Uint8Array');
         }
         temp = temp.replace('0x', '');
         // sign the payload as dag-cbor
         
-        const { jws, linkedBlock } = await did.createDagJWS({
-            contentType: payload.type,
-            name: payload.name,
-            lastModified: payload.lastModified,
+        const { jws, linkedBlock } = await this.did.createDagJWS({
+            // @ts-ignore
+            contentType: options.contentType ||  payload.type,
+            // @ts-ignore
+            name: options.name || payload.name,
+            // @ts-ignore
+            lastModified: options.lastModified || payload.lastModified,
             timestamp: moment().unix(),
             hash: temp,
-            id: atob(moment().unix() + temp),
+            id: keccak256(ethers.utils.toUtf8Bytes(moment().unix() + temp)),
             content: content.toString('base64'),
             documentPubCert: undefined,
             documentSignature: undefined,
@@ -100,9 +82,8 @@ export class IPFSManager {
         // put the JWS into the ipfs dag
         const jwsCid = await this.client.dag.put(jws, multicodec.DAG_CBOR);
         // put the payload into the ipfs dag
-        //await this.client.block.put(linkedBlock, { cid: jws.link })
-        console.log('cid', jwsCid.toString());
-        return jwsCid.toString()
+        await this.client.block.put(linkedBlock, { cid: jws.link })
+        return jwsCid.toString();
     }
 
     createSignedContent({
@@ -131,17 +112,16 @@ export class IPFSManager {
     }
 
     async addIndex(
-        did: DID,
         documents: any[]) {
         // sign the payload as dag-cbor
-        const { jws, linkedBlock } = await did.createDagJWS({
+        const { jws, linkedBlock } = await this.did.createDagJWS({
             documents
         });
         
         // put the JWS into the ipfs dag
         const jwsCid = await this.client.dag.put(jws, multicodec.DAG_CBOR);
         // put the payload into the ipfs dag
-        //await this.client.blocks.put(linkedBlock, { cid: jws.link });
+        await this.client.blocks.put(linkedBlock, { cid: jws.link });
         const cid = jwsCid.toString()
         return cid;
     }
@@ -165,19 +145,19 @@ export class IPFSManager {
         return temp;
     }
 
-    verify(did: DID, obj: any): Promise<any> {
-        return did.verifyJWS(obj.metadata);
+    verify(obj: any): Promise<any> {
+        return this.did.verifyJWS(obj.metadata);
     }
 
-    async encryptObject(did: DID, cleartext, dids: string[]) {
-        const jwe = await did.createDagJWE(cleartext, dids)
+    async encryptObject(cleartext, dids: string[]) {
+        const jwe = await this.did.createDagJWE(cleartext, dids)
         return this.client.dag.put(jwe, multicodec.DAG_CBOR);
     }
 
-    async decryptObject(did: DID, cid, query) {
+    async decryptObject(didInstance: DID, cid, query) {
         const jwe = (await this.client.dag.get(cid, query)).value
-        const cleartext = await did.decryptDagJWE(jwe)
-        return cleartext;
+        const cleartext = await didInstance.decryptDagJWE(jwe)
+        return { jwe, cleartext };
     }
     async addPublicWallet(
         did: DID,
